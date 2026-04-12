@@ -1,0 +1,71 @@
+From d3dff28ede12dfe90b65269d5588e29b993ed6a2 Mon Sep 17 00:00:00 2001
+From: Josh Law <objecting@objecting.org>
+Date: Sun, 12 Apr 2026 19:37:31 +0000
+Subject: [PATCH] lib/ubsan: fix out-of-bounds array access in type_check_kinds
+
+The type_check_kinds array currently has only 8 elements. Modern Clang compilers emit up to 12 different type check kinds. If UBSAN traps on one of these newer check kinds, data->type_check_kind will index out of bounds, causing the kernel to panic while attempting to print the warning.
+
+Add a bounds-checking helper function type_check_kinds_str() to safely handle unrecognized type checks and prevent UBSAN from crashing the kernel.
+
+Signed-off-by: Josh Law <objecting@objecting.org>
+---
+ lib/ubsan.c | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/lib/ubsan.c b/lib/ubsan.c
+index 456e3dd8f4ea..ed231089948d 100644
+--- a/lib/ubsan.c
++++ b/lib/ubsan.c
+@@ -111,6 +111,13 @@ static const char * const type_check_kinds[] = {
+ 	"downcast of"
+ };
+ 
++static const char *type_check_kinds_str(unsigned char kind)
++{
++	if (kind < ARRAY_SIZE(type_check_kinds))
++		return type_check_kinds[kind];
++	return "unknown type check";
++}
++
+ #define REPORTED_BIT 31
+ 
+ #if (BITS_PER_LONG == 64) && defined(__BIG_ENDIAN)
+@@ -322,7 +329,7 @@ void __ubsan_handle_implicit_conversion(void *_data, void *from_val, void *to_va
+ 	pr_err("cannot represent %s value %s during %s %s, truncated to %s\n",
+ 		data->from_type->type_name,
+ 		from_val_str,
+-		type_check_kinds[data->type_check_kind],
++		type_check_kinds_str(data->type_check_kind),
+ 		data->to_type->type_name,
+ 		to_val_str);
+ 
+@@ -360,7 +367,7 @@ static void handle_null_ptr_deref(struct type_mismatch_data_common *data)
+ 	ubsan_prologue(data->location, "null-ptr-deref");
+ 
+ 	pr_err("%s null pointer of type %s\n",
+-		type_check_kinds[data->type_check_kind],
++		type_check_kinds_str(data->type_check_kind),
+ 		data->type->type_name);
+ 
+ 	ubsan_epilogue();
+@@ -375,7 +382,7 @@ static void handle_misaligned_access(struct type_mismatch_data_common *data,
+ 	ubsan_prologue(data->location, "misaligned-access");
+ 
+ 	pr_err("%s misaligned address %p for type %s\n",
+-		type_check_kinds[data->type_check_kind],
++		type_check_kinds_str(data->type_check_kind),
+ 		(void *)ptr, data->type->type_name);
+ 	pr_err("which requires %ld byte alignment\n", data->alignment);
+ 
+@@ -390,7 +397,7 @@ static void handle_object_size_mismatch(struct type_mismatch_data_common *data,
+ 
+ 	ubsan_prologue(data->location, "object-size-mismatch");
+ 	pr_err("%s address %p with insufficient space\n",
+-		type_check_kinds[data->type_check_kind],
++		type_check_kinds_str(data->type_check_kind),
+ 		(void *) ptr);
+ 	pr_err("for an object of type %s\n", data->type->type_name);
+ 	ubsan_epilogue();
+-- 
+2.34.1
+
