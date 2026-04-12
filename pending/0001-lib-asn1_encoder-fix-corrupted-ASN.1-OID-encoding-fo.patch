@@ -1,0 +1,33 @@
+From 282c924281d029b4aa42676d98e3010e026329e5 Mon Sep 17 00:00:00 2001
+From: Josh Law <objecting@objecting.org>
+Date: Sun, 12 Apr 2026 19:44:46 +0000
+Subject: [PATCH] lib/asn1_encoder: fix corrupted ASN.1 OID encoding for zero
+ digits
+
+The ASN.1 Object Identifier (OID) digit encoder contains a fast path for encoding the value 0. It incorrectly encodes this value as 0x80.
+
+In standard ASN.1 BER/DER encoding, base-128 is used. The most significant bit (0x80) signals that more bytes follow for the current digit. Setting 0x80 for a standalone zero digit creates an invalid, non-terminating byte sequence, which completely corrupts the OID and causes standard decoders to fail.
+
+Change the fast-path encoding to 0x00 to produce a valid standard OID component.
+
+Signed-off-by: Josh Law <objecting@objecting.org>
+---
+ lib/asn1_encoder.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/asn1_encoder.c b/lib/asn1_encoder.c
+index 92f35aae13b1..690ad43d37f4 100644
+--- a/lib/asn1_encoder.c
++++ b/lib/asn1_encoder.c
+@@ -97,7 +97,7 @@ static int asn1_encode_oid_digit(unsigned char **_data, int *data_len, u32 oid)
+ 
+ 	/* quick case */
+ 	if (oid == 0) {
+-		*data++ = 0x80;
++		*data++ = 0x00;
+ 		(*data_len)--;
+ 		goto out;
+ 	}
+-- 
+2.34.1
+
