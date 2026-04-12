@@ -5,18 +5,18 @@ Subject: [PATCH] lib/btree: optimize btree_merge to avoid three tree walks
 
 The btree_merge function previously used btree_last() and btree_remove() to extract elements from the victim tree, which resulted in three tree walks from the root per element.
 
-Introduce btree_remove_min() to extract and remove the smallest element in a single pass before rebalancing. This reduces the number of tree walks from three to two, reducing overhead.
+Introduce btree_remove_last() to extract and remove the largest element in a single pass before rebalancing. This reduces the number of tree walks from three to two, reducing overhead.
 
 Signed-off-by: Josh Law <objecting@objecting.org>
 ---
- lib/btree.c | 48 ++++++++++++++++++++++++++++++++++++++++--------
- 1 file changed, 40 insertions(+), 8 deletions(-)
+ lib/btree.c | 50 ++++++++++++++++++++++++++++++++++++++++----------
+ 1 file changed, 40 insertions(+), 10 deletions(-)
 
 diff --git a/lib/btree.c b/lib/btree.c
 index 9c80c0c7bba8..9d5f1f5bee38 100644
 --- a/lib/btree.c
 +++ b/lib/btree.c
-@@ -631,11 +631,44 @@ void *btree_remove(struct btree_head *head, struct btree_geo *geo,
+@@ -631,11 +631,46 @@ void *btree_remove(struct btree_head *head, struct btree_geo *geo,
  }
  EXPORT_SYMBOL_GPL(btree_remove);
  
@@ -34,6 +34,9 @@ index 9c80c0c7bba8..9d5f1f5bee38 100644
 +		node = bval(geo, node, 0);
 +
 +	fill = getfill(geo, node, 0);
++	if (!fill)
++		return NULL;
++
 +	ret = bval(geo, node, 0);
 +	longcpy(key, bkey(geo, node, 0), geo->keylen);
 +
@@ -62,7 +65,7 @@ index 9c80c0c7bba8..9d5f1f5bee38 100644
  	void *val;
  	int err;
  
-@@ -649,20 +682,19 @@ int btree_merge(struct btree_head *target, struct btree_head *victim,
+@@ -649,20 +684,19 @@ int btree_merge(struct btree_head *target, struct btree_head *victim,
  		return 0;
  	}
  
@@ -91,4 +94,3 @@ index 9c80c0c7bba8..9d5f1f5bee38 100644
  }
 -- 
 2.34.1
-
