@@ -22,11 +22,11 @@ Remove the old TODO comment.
 
 Signed-off-by: Josh Law <joshlaw48@gmail.com>
 ---
- lib/alloc_tag.c | 70 ++++++++++++++++++++++++++++++++++---------------
- 1 file changed, 49 insertions(+), 21 deletions(-)
+ lib/alloc_tag.c | 78 +++++++++++++++++++++++++++++++++++++++----------
+ 1 file changed, 63 insertions(+), 15 deletions(-)
 
 diff --git a/lib/alloc_tag.c b/lib/alloc_tag.c
-index ed1bdcf1f8ab..761d67784e63 100644
+index ed1bdcf1f8ab..9d3b145a57a1 100644
 --- a/lib/alloc_tag.c
 +++ b/lib/alloc_tag.c
 @@ -14,6 +14,7 @@
@@ -37,10 +37,10 @@ index ed1bdcf1f8ab..761d67784e63 100644
  
  #define ALLOCINFO_FILE_NAME		"allocinfo"
  #define MODULE_ALLOC_TAG_VMAP_SIZE	(100000UL * sizeof(struct alloc_tag))
-@@ -771,33 +772,57 @@ static __init bool need_page_alloc_tagging(void)
-  *   - Base allocations independent of CPU count
-  *   - Per-CPU allocations (e.g., CPU hotplug callbacks during smp_init,
-  *     such as trace ring buffers, scheduler per-cpu data)
+@@ -771,33 +772,74 @@ static __init bool need_page_alloc_tagging(void)
+  * - Base allocations independent of CPU count
+  * - Per-CPU allocations (e.g., CPU hotplug callbacks during smp_init,
+  * such as trace ring buffers, scheduler per-cpu data)
 - *
 - * For simplicity, we fix the size to 8192.
 - * If insufficient, a warning will be triggered to alert the user.
@@ -48,12 +48,13 @@ index ed1bdcf1f8ab..761d67784e63 100644
 - * TODO: Replace fixed-size array with dynamic allocation using
 - * a GFP flag similar to ___GFP_NO_OBJ_EXT to avoid recursion.
   */
--#define EARLY_ALLOC_PFN_MAX		8192
--
+ #define EARLY_ALLOC_PFN_MAX		8192
+ 
 -static unsigned long early_pfns[EARLY_ALLOC_PFN_MAX] __initdata;
 -static atomic_t early_pfn_count __initdata = ATOMIC_INIT(0);
-+static unsigned long *early_pfns __initdata;
-+static int early_pfn_cap __initdata;
++static unsigned long init_early_pfns[EARLY_ALLOC_PFN_MAX] __initdata;
++static unsigned long *early_pfns __initdata = init_early_pfns;
++static int early_pfn_cap __initdata = EARLY_ALLOC_PFN_MAX;
 +static int early_pfn_count __initdata;
 +static DEFINE_SPINLOCK(early_pfn_lock);
  
@@ -77,11 +78,11 @@ index ed1bdcf1f8ab..761d67784e63 100644
 +	idx = early_pfn_count;
 +	if (idx >= early_pfn_cap) {
 +		/*
-+		 * If we don't have an array, or if extreme contention caused our
-+		 * pre-allocated array to already be too small, we must allocate.
++		 * If extreme contention caused our pre-allocated array to
++		 * already be too small, we must allocate again.
 +		 */
 +		if (!new_pfns || idx >= new_cap) {
-+			new_cap = early_pfn_cap ? early_pfn_cap * 2 : 256;
++			new_cap = early_pfn_cap * 2;
 +			if (idx >= new_cap)
 +				new_cap = idx + 1; /* Catch extreme stale capacity edge cases */
 +
@@ -100,10 +101,19 @@ index ed1bdcf1f8ab..761d67784e63 100644
 -	} while (!atomic_try_cmpxchg(&early_pfn_count, &old_idx, new_idx));
  
 -	early_pfns[old_idx] = pfn;
-+		if (early_pfns)
-+			memcpy(new_pfns, early_pfns, early_pfn_count * sizeof(unsigned long));
-+		swap(early_pfns, new_pfns);
++		/*
++		 * We don't need to check if early_pfns is NULL because it
++		 * starts pointing to the static init_early_pfns.
++		 */
++		memcpy(new_pfns, early_pfns, early_pfn_count * sizeof(unsigned long));
++
++		/* Only free the old array if it wasn't the initial static one */
++		if (early_pfns != init_early_pfns)
++			kfree(early_pfns);
++
++		early_pfns = new_pfns;
 +		early_pfn_cap = new_cap;
++		new_pfns = NULL; /* Prevent kfree(new_pfns) at the bottom since we consumed it */
 +	}
 +
 +	early_pfns[idx] = pfn;
@@ -115,7 +125,7 @@ index ed1bdcf1f8ab..761d67784e63 100644
  }
  
  typedef void alloc_tag_add_func(unsigned long pfn);
-@@ -829,7 +854,7 @@ static void __init clear_early_alloc_pfn_tag_refs(void)
+@@ -829,7 +871,7 @@ static void __init clear_early_alloc_pfn_tag_refs(void)
  	/* Make sure we are not racing with __alloc_tag_add_early_pfn() */
  	synchronize_rcu();
  
@@ -124,16 +134,18 @@ index ed1bdcf1f8ab..761d67784e63 100644
  		unsigned long pfn = early_pfns[i];
  
  		if (pfn_valid(pfn)) {
-@@ -861,6 +886,9 @@ static void __init clear_early_alloc_pfn_tag_refs(void)
+@@ -861,6 +903,12 @@ static void __init clear_early_alloc_pfn_tag_refs(void)
  		}
  
  	}
 +
-+	kfree(early_pfns);
++	/* Clean up dynamically allocated arrays, skipping the static bootstrap */
++	if (early_pfns != init_early_pfns)
++		kfree(early_pfns);
++
 +	early_pfns = NULL;
  }
  #else /* !CONFIG_MEM_ALLOC_PROFILING_DEBUG */
  static inline void __init clear_early_alloc_pfn_tag_refs(void) {}
 -- 
 2.34.1
-
