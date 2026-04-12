@@ -1,4 +1,4 @@
-From a8abff572e03d2d9e3d58421d377d56c5d32e6f4 Mon Sep 17 00:00:00 2001
+From 7085573368ae77c034b8ff2ce3cefdf5e6eca748 Mon Sep 17 00:00:00 2001
 From: Josh Law <objecting@objecting.org>
 Date: Sun, 12 Apr 2026 12:40:17 +0000
 Subject: [PATCH] lib/btree: optimize btree_merge to avoid three tree walks
@@ -9,18 +9,18 @@ Introduce btree_remove_min() to extract and remove the smallest element in a sin
 
 Signed-off-by: Josh Law <objecting@objecting.org>
 ---
- lib/btree.c | 47 +++++++++++++++++++++++++++++++++++++++--------
- 1 file changed, 39 insertions(+), 8 deletions(-)
+ lib/btree.c | 48 ++++++++++++++++++++++++++++++++++++++++--------
+ 1 file changed, 40 insertions(+), 8 deletions(-)
 
 diff --git a/lib/btree.c b/lib/btree.c
-index 9c80c0c7bba8..a15d0dcc9e04 100644
+index 9c80c0c7bba8..9d5f1f5bee38 100644
 --- a/lib/btree.c
 +++ b/lib/btree.c
 @@ -631,11 +631,44 @@ void *btree_remove(struct btree_head *head, struct btree_geo *geo,
  }
  EXPORT_SYMBOL_GPL(btree_remove);
  
-+static void *btree_remove_min(struct btree_head *head, struct btree_geo *geo, unsigned long *key)
++static void *btree_remove_last(struct btree_head *head, struct btree_geo *geo, unsigned long *key)
 +{
 +	unsigned long *node;
 +	int i, fill;
@@ -62,20 +62,21 @@ index 9c80c0c7bba8..a15d0dcc9e04 100644
  	void *val;
  	int err;
  
-@@ -649,20 +682,18 @@ int btree_merge(struct btree_head *target, struct btree_head *victim,
+@@ -649,20 +682,19 @@ int btree_merge(struct btree_head *target, struct btree_head *victim,
  		return 0;
  	}
  
 -	/* TODO: This needs some optimizations.  Currently we do three tree
 -	 * walks to remove a single object from the victim.
 +	/*
-+	 * We use btree_remove_min() to extract elements from the victim tree.
-+	 * This reduces the overhead compared to the old approach which did three
-+	 * tree walks to remove a single object.
++	 * btree_remove_last() extracts and removes the last (largest-key)
++	 * element in a single walk, instead of the old btree_last() +
++	 * btree_remove() approach which walked the victim tree three times
++	 * per element.
  	 */
  	for (;;) {
 -		val = btree_last(victim, geo, key);
-+		val = btree_remove_min(victim, geo, key);
++		val = btree_remove_last(victim, geo, key);
  		if (!val)
  			break;
  		err = btree_insert(target, geo, key, val, gfp);
