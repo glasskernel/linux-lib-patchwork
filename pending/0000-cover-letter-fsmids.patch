@@ -11,7 +11,7 @@ Patch 2: It drops valid matches if they were followed by trailing data in the se
 
 Josh Law (2):
   lib/ts_fsm: Fix text search evasion on block boundaries
-  lib/ts_fsm: Remove bad end-of-data check
+  lib/ts_fsm: Remove overeager end-of-data check
 
  lib/ts_fsm.c | 11 ++++++++---
  1 file changed, 8 insertions(+), 3 deletions(-)
