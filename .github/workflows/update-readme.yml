@@ -72,8 +72,8 @@ jobs:
       - name: Commit and push changes
         env:
           MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+          # Todo: add pull logic instead of it just breaking 
         run: |
-          git pull https://github.com/techyguyperplexable/linux-lib-patchwork main
           git config --global user.name "Josh Law"
           git config --global user.email "joshlaw48@gmail.com"
           git add README.md
