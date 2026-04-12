@@ -1,0 +1,18 @@
+Finite State Machine (FSM) Text Search Vulnerability Results
+
+Vulnerability 1: Text search evasion on block boundaries.
+Vulnerability 2: Overzealous end-of-data check (evasion via trailing data).
+
+--- Results BEFORE Fix ---
+Baseline test: SUCCESS (Connectivity verified)
+Test 1: Match anywhere in window (Should DROP)
+RESULT: FAILED: Ping passed (FSM missed pattern due to bug)
+Test 2: Trailing data in window (Should ALSO DROP)
+RESULT: BUG TRIGGERED: Ping passed (Evasion successful)
+
+--- Results AFTER Fix ---
+Baseline test: SUCCESS (Connectivity verified)
+Test 1: Match anywhere in window (Should DROP)
+RESULT: SUCCESS: Ping dropped (FSM correctly identified pattern)
+Test 2: Trailing data in window (Should ALSO DROP)
+RESULT: SUCCESS: Ping dropped (Fix confirmed! Evasion no longer possible)
