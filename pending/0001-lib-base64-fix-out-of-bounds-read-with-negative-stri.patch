@@ -1,0 +1,33 @@
+From 0337831dc34cc16047115d92d66c7b53cbd6707e Mon Sep 17 00:00:00 2001
+From: Josh Law <objecting@objecting.org>
+Date: Sun, 12 Apr 2026 19:41:51 +0000
+Subject: [PATCH] lib/base64: fix out-of-bounds read with negative string
+ lengths
+
+The base64_decode function accepts a signed int for srclen. If a caller accidentally passes a negative length and padding is false, the function bypasses the srclen == 1 check and proceeds to read up to three bytes from the memory address pointed to by src.
+
+While current kernel callers may not pass negative lengths, library functions accepting signed lengths must guard against underflows to prevent arbitrary out-of-bounds reads.
+
+Fix this by catching any srclen < 2 instead of exactly srclen == 1.
+
+Signed-off-by: Josh Law <objecting@objecting.org>
+---
+ lib/base64.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/base64.c b/lib/base64.c
+index 41961a444028..6349afe0ff63 100644
+--- a/lib/base64.c
++++ b/lib/base64.c
+@@ -164,7 +164,7 @@ int base64_decode(const char *src, int srclen, u8 *dst, bool padding, enum base6
+ 
+ 	if (likely(!srclen))
+ 		return bp - dst;
+-	if (padding || srclen == 1)
++	if (padding || srclen < 2)
+ 		return -1;
+ 
+ 	val = (base64_rev_tables[s[0]] << 12) | (base64_rev_tables[s[1]] << 6);
+-- 
+2.34.1
+
