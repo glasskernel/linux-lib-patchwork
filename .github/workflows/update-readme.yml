@@ -68,8 +68,15 @@ jobs:
           fi
 
       - name: Commit and push changes
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git diff --staged --quiet || (git commit -m "docs: update README manifest" && git push)
+          if ! git diff --staged --quiet; then
+            git commit -m "docs: update README manifest"
+            # Push to both repositories using the token for authentication
+            git push "https://${MIRROR_TOKEN}@github.com/glasskernel/linux-lib-patchwork.git" main --force
+            git push "https://${MIRROR_TOKEN}@github.com/techyguyperplexable/linux-lib-patchwork.git" main --force
+          fi
