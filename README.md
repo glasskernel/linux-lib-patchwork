@@ -18,6 +18,7 @@ Patch collection and reproduction scripts for the Linux kernel `lib/` directory.
 - `0001-lib-decompress-track-total-bytes-consumed-with-fill-.patch`: lib/decompress: track total bytes consumed with fill function
 - `0001-lib-glob-fix-dangling-backslash-matching-null-termin.patch`: lib/glob: fix dangling backslash matching null terminator
 - `0001-lib-inflate-fix-hardcoded-4-byte-malloc-alignment.patch`: lib/inflate: fix hardcoded 4-byte malloc alignment
+- `0001-lib-kfifo-fix-integer-underflow-in-kfifo_init-buffer.patch`: lib/kfifo: fix integer underflow in kfifo_init buffer size
 - `0001-lib-ts_fsm-Fix-text-search-evasion-on-block-boundari.patch`: lib/ts_fsm: Fix text search evasion on block boundaries
 - `0001-lib-ubsan-fix-out-of-bounds-array-access-in-type_che.patch`: lib/ubsan: fix out-of-bounds array access in type_check_kinds
 - `0002-lib-ts_fsm-Remove-overeager-end-of-data-check.patch`: lib/ts_fsm: Remove overeager end-of-data check
