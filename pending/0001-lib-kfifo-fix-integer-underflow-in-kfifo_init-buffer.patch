@@ -1,0 +1,45 @@
+From 0be976e8a6bbebdbc8812f327f3a40545ac07b61 Mon Sep 17 00:00:00 2001
+From: Josh Law <objecting@objecting.org>
+Date: Sun, 12 Apr 2026 19:51:37 +0000
+Subject: [PATCH] lib/kfifo: fix integer underflow in kfifo_init buffer size
+ calculation
+
+If __kfifo_init is called with a buffer size smaller than a single element (size < esize), the calculation size /= esize sets size to 0. It then attempts to round down this value by calling rounddown_pow_of_two(0).
+
+As documented in <linux/log2.h>, passing 0 to rounddown_pow_of_two is undefined behavior. On many architectures, the resulting bitwise shift underflows, setting size to a massive positive number. This completely bypasses the subsequent size < 2 safety check and creates a kfifo with a mask allowing billions of elements in a tiny buffer, leading to immediate out-of-bounds memory corruption on the first read or write.
+
+Reorder the logic to perform the size < 2 bounds check before attempting any power-of-two rounding.
+
+Signed-off-by: Josh Law <objecting@objecting.org>
+---
+ lib/kfifo.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/lib/kfifo.c b/lib/kfifo.c
+index 2633f9cc336c..1a51f54b868c 100644
+--- a/lib/kfifo.c
++++ b/lib/kfifo.c
+@@ -69,9 +69,6 @@ int __kfifo_init(struct __kfifo *fifo, void *buffer,
+ {
+ 	size /= esize;
+ 
+-	if (!is_power_of_2(size))
+-		size = rounddown_pow_of_two(size);
+-
+ 	fifo->in = 0;
+ 	fifo->out = 0;
+ 	fifo->esize = esize;
+@@ -81,6 +78,10 @@ int __kfifo_init(struct __kfifo *fifo, void *buffer,
+ 		fifo->mask = 0;
+ 		return -EINVAL;
+ 	}
++
++	if (!is_power_of_2(size))
++		size = rounddown_pow_of_two(size);
++
+ 	fifo->mask = size - 1;
+ 
+ 	return 0;
+-- 
+2.34.1
+
