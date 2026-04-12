@@ -1,0 +1,20 @@
+From c413cbc70785efff20b86b3bbc68b85a10c42e7d Mon Sep 17 00:00:00 2001
+From: Josh Law <joshlaw48@gmail.com>
+Date: Sun, 12 Apr 2026 02:11:31 +0000
+Subject: [PATCH 0/2] Fixes to a IDS evasion
+
+There are two bugs in ts_fsm which isnt quite good
+
+Patch 1: fixes the text search evasion, by correctly resuming the search
+
+Patch 2: It drops valid matches if they were followed by trailing data in the search window
+
+Josh Law (2):
+  lib/ts_fsm: Fix text search evasion on block boundaries
+  lib/ts_fsm: Remove bad end-of-data check
+
+ lib/ts_fsm.c | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+-- 
+2.43.0
