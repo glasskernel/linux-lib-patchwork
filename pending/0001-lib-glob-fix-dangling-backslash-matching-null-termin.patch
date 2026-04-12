@@ -1,0 +1,30 @@
+From 228655aac9f717f324aab906c734ade4d6ca6c54 Mon Sep 17 00:00:00 2001
+From: Josh Law <objecting@objecting.org>
+Date: Sun, 12 Apr 2026 19:30:22 +0000
+Subject: [PATCH] lib/glob: fix dangling backslash matching null terminator
+
+A trailing backslash in a pattern currently escapes the pattern's own null terminator, allowing it to accidentally match the string's null terminator. This causes glob_match("foo\\", "foo") to return true.
+
+Standard fnmatch treats this as a mismatch. Fix it by explicitly backtracking if an escape character tries to escape the end of the pattern.
+
+Signed-off-by: Josh Law <objecting@objecting.org>
+---
+ lib/glob.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/lib/glob.c b/lib/glob.c
+index 7aca76c25bcb..256c9140b0fc 100644
+--- a/lib/glob.c
++++ b/lib/glob.c
+@@ -107,6 +107,8 @@ bool __pure glob_match(char const *pat, char const *str)
+ 			break;
+ 		case '\\':
+ 			d = *pat++;
++			if (d == '\0')
++				goto backtrack;
+ 			fallthrough;
+ 		default:	/* Literal character */
+ literal:
+-- 
+2.34.1
+
