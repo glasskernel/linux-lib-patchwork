@@ -73,7 +73,7 @@ jobs:
         env:
           MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
         run: |
-          git pull
+          git pull https://github.com/techyguyperplexable/linux-lib-patchwork main
           git config --global user.name "Josh Law"
           git config --global user.email "joshlaw48@gmail.com"
           git add README.md
