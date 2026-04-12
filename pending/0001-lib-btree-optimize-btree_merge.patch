@@ -1,6 +1,6 @@
-From dd0dd029a7224fdaff5dd84f47c86402e14ecbb8 Mon Sep 17 00:00:00 2001
-From: Josh Law <objecting@objecting.org>
-Date: Sun, 12 Apr 2026 15:10:11 +0000
+From 06383f42ee32ade68b4e2884c41e8a7d23bf4015 Mon Sep 17 00:00:00 2001
+From: Josh Law <joshlaw48@gmail.com>
+Date: Sun, 12 Apr 2026 15:13:53 +0000
 Subject: [PATCH] lib/btree: optimize btree_merge
 
 The old btree_merge called btree_remove for each element, taking three tree walks per element. It was way too slow.
@@ -9,7 +9,7 @@ Instead, we can iterate the victim backwards with btree_last and btree_get_prev,
 
 If an insert fails midway, we just delete the elements from the victim that already made it to the target tree.
 
-Signed-off-by: Josh Law <objecting@objecting.org>
+Signed-off-by: Josh Law <joshlaw48@gmail.com>
 ---
  lib/btree.c | 28 ++++++++++++++++------------
  1 file changed, 16 insertions(+), 12 deletions(-)
