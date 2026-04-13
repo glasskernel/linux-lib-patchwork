@@ -1,0 +1,50 @@
+From 4af765cd6494bb426068e37861cd91cd04e80e06 Mon Sep 17 00:00:00 2001
+From: Josh Law <objecting@objecting.org>
+Date: Mon, 13 Apr 2026 21:11:50 +0000
+Subject: [PATCH] lib/bitmap: Fix out-of-bounds memory corruption in bitmap
+ shift operations
+
+If a caller requests a shift amount greater than or equal to the size of the bitmap (nbits), __bitmap_shift_left and __bitmap_shift_right fail to clamp the 'off' variable. This causes the trailing memset() to either write way past the end of the buffer or underflow into preceding heap metadata, depending on the shift direction.
+
+I honestly don't know how this hasn't blown up more systems. A shift of 128 on a 64-bit bitmap creates a massive negative offset for memset, which means instant heap corruption. Most drivers probably never pass a shift larger than the bitmap size, or they implicitly mask it before calling these functions. But the author's original commit log from 2015 explicitly stated that shifting by >= nbits was supported and should zero the buffer. It didn't.
+
+This clamps the shift amount at the top of both functions. If someone asks to shift all the bits off the edge, we just zero the whole thing and return safely.
+
+Signed-off-by: Josh Law <objecting@objecting.org>
+---
+ lib/bitmap.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/lib/bitmap.c b/lib/bitmap.c
+index 1b897f94e0ff..e49edd0263ff 100644
+--- a/lib/bitmap.c
++++ b/lib/bitmap.c
+@@ -96,6 +96,12 @@ void __bitmap_shift_right(unsigned long *dst, const unsigned long *src,
+ 	unsigned k, lim = BITS_TO_LONGS(nbits);
+ 	unsigned off = shift/BITS_PER_LONG, rem = shift % BITS_PER_LONG;
+ 	unsigned long mask = BITMAP_LAST_WORD_MASK(nbits);
++
++	if (shift >= nbits) {
++		bitmap_zero(dst, nbits);
++		return;
++	}
++
+ 	for (k = 0; off + k < lim; ++k) {
+ 		unsigned long upper, lower;
+ 
+@@ -141,6 +147,12 @@ void __bitmap_shift_left(unsigned long *dst, const unsigned long *src,
+ 	int k;
+ 	unsigned int lim = BITS_TO_LONGS(nbits);
+ 	unsigned int off = shift/BITS_PER_LONG, rem = shift % BITS_PER_LONG;
++
++	if (shift >= nbits) {
++		bitmap_zero(dst, nbits);
++		return;
++	}
++
+ 	for (k = lim - off - 1; k >= 0; --k) {
+ 		unsigned long upper, lower;
+ 
+-- 
+2.34.1
+
