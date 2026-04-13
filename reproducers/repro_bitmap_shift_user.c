@@ -1,6 +1,6 @@
 // Not developed by me, (ai helped), TL;DR: AI made this cuz im tired, ill do later//
 // TODO: Make shell script made by **ME** to reproduce the bug //
-// The patch and the bug was made by me //
+// The patch and the bug was made by me (in short, i found the bug, i fixed it, i asked AI to help with repro //
 #include <stdio.h>
 #include <stdlib.h> 
 #include <string.h>
