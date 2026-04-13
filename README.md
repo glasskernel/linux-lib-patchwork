@@ -35,5 +35,6 @@ Patch collection and reproduction scripts for the Linux kernel `lib/` directory.
 - `kmp_overflow.patch`: lib/ts_kmp: fix integer overflow in pattern length
 
 ## Reproducers
+- `repro_bitmap_shift_user.c`
 - `repro_iptables.sh`
 - `results.txt`
