@@ -14,6 +14,7 @@ Patch collection and reproduction scripts for the Linux kernel `lib/` directory.
 - `0000-cover-letter-fsmids.patch`: Fixes to a IDS evasion
 - `0001-lib-asn1_encoder-fix-corrupted-ASN.1-OID-encoding-fo.patch`: lib/asn1_encoder: fix corrupted ASN.1 OID encoding for zero
 - `0001-lib-base64-fix-out-of-bounds-read-with-negative-stri.patch`: lib/base64: fix out-of-bounds read with negative string
+- `0001-lib-bitmap-Fix-out-of-bounds-memory-corruption-in-bi.patch`: lib/bitmap: Fix out-of-bounds memory corruption in bitmap
 - `0001-lib-btree-optimize-btree_merge.patch`: lib/btree: optimize btree_merge
 - `0001-lib-decompress-track-total-bytes-consumed-with-fill-.patch`: lib/decompress: track total bytes consumed with fill function
 - `0001-lib-glob-fix-dangling-backslash-matching-null-termin.patch`: lib/glob: fix dangling backslash matching null terminator
