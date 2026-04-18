@@ -3,7 +3,7 @@ From: Josh Law <objecting@objecting.org>
 Date: Sun, 12 Apr 2026 19:33:38 +0000
 Subject: [PATCH] lib/inflate: fix hardcoded 4-byte malloc alignment
 
-The trivial boot-time malloc implementation in lib/inflate.c hardcodes a 4-byte alignment using (malloc_ptr + 3) & ~3. On 64-bit architectures with strict alignment requirements, returning a 4-byte aligned pointer for a struct that contains 8-byte pointers will trigger an unaligned access exception and panic the kernel during early boot.
+The trivial boot time malloc implementation in lib/inflate.c hardcodes a 4 byte alignment using (malloc_ptr + 3) & ~3. On 64 bit architectures with strict alignment requirements, returning a 4 byte aligned pointer for a struct that contains 8 byte pointers will trigger an unaligned access exception and panic the kernel during early boot.
 
 Update the alignment mask to dynamically use sizeof(unsigned long) - 1 so pointers are safely aligned on all architectures.
 
